@@ -1,88 +1,472 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="./static/css/styles.css" />
-        <meta
-            http-equiv="Content-Security-Policy"
-            content="default-src * 'unsafe-inline' 'unsafe-eval'"
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Tauri App</title>
-        <script src="./static/js/main.js"></script>
-    </head>
-    <body>
-        <main class="container">
-            <h1>Welcome to TauriMan</h1>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国社会意识形态倾向测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f3f4f6;
+        }
 
-            <div class="row">
-                <a
-                    href="https://tauri.app"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <img
-                        src="./assets/tauri.svg"
-                        class="logo tauri"
-                        alt="Tauri logo"
-                    />
-                </a>
-                <a
-                    href="https://pakeplus.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <img
-                        src="https://hk.gh-proxy.org/https://github.com/Sjj1024/PakePlus/blob/main/app-icon.png"
-                        class="logo vanilla"
-                        alt="JavaScript logo"
-                    />
-                </a>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 隐藏滚动条但允许滚动 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 180px;
+            width: 100%;
+        }
+        
+        .chart-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-align: center;
+            pointer-events: none;
+            color: #374151;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col items-center justify-center py-6 px-4">
+
+    <div id="start-screen" class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+        <div class="bg-indigo-600 p-6 text-center">
+            <h1 class="text-3xl font-bold text-white mb-2">意识形态光谱测试</h1>
+            <p class="text-indigo-100 text-sm">基于中国社会语境的深度分析</p>
+        </div>
+        <div class="p-8">
+            <div class="mb-6 text-center">
+                <svg class="w-24 h-24 mx-auto text-indigo-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-gray-600 mb-4">本测试包含 25 道经过精心设计的题目，将从变革、理论、权力、国际、组织、生产、文化七个维度分析您的政治光谱。</p>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-left text-sm text-yellow-700">
+                    <p><strong>提示：</strong> 请根据您的第一直觉回答。没有绝对正确的答案。</p>
+                </div>
             </div>
-            <p>Click to get data</p>
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit" id="getdata">GET DATA</button>
-            </form>
-            <div class="functions">
-                <a href="./book.html" target="_self">跳转到book.html</a>
-                <a
-                    href="https://www.baidu.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >跳到百度blank
-                </a>
-                <a
-                    href="https://www.baidu.com"
-                    target="_self"
-                    rel="noopener noreferrer"
-                >
-                    跳到百度self
-                </a>
-                <button onclick="sayHello()">点击我</button>
-                <button onclick="sayHello()">下载文件</button>
-                <button onclick="sayHello()">上传文件</button>
-                <button onclick="sayHello()">访问相机</button>
-                <button onclick="sayHello()">访问麦克风</button>
-                <button onclick="sayHello()">访问相册</button>
-                <button class="btn" onclick="openWechat()">打开微信</button>
-                <button class="btn" onclick="openWechatScan()">
-                    打开扫一扫
+            <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 transform hover:scale-[1.02] shadow-md">
+                开始测试
+            </button>
+        </div>
+    </div>
+
+    <div id="quiz-screen" class="hidden max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden fade-in flex flex-col h-[80vh] md:h-auto">
+        <div class="bg-gray-200 h-2 w-full">
+            <div id="progress-bar" class="bg-indigo-600 h-2 transition-all duration-300" style="width: 0%"></div>
+        </div>
+        
+        <div class="p-6 flex-1 flex flex-col justify-center">
+            <span class="text-xs font-semibold text-indigo-600 tracking-wide uppercase mb-2">问题 <span id="q-number">1</span> / 25</span>
+            <h2 id="q-text" class="text-xl font-bold text-gray-800 mb-8 leading-relaxed min-h-[5rem]">
+                加载中...
+            </h2>
+
+            <div class="space-y-3">
+                <button onclick="handleAnswer(2)" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 shadow-sm border-2 border-transparent hover:border-green-800">强烈赞同</button>
+                <button onclick="handleAnswer(1)" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition duration-200 shadow-sm">赞同</button>
+                <button onclick="handleAnswer(0)" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition duration-200 shadow-sm">中立 / 不确定</button>
+                <button onclick="handleAnswer(-1)" class="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition duration-200 shadow-sm">反对</button>
+                <button onclick="handleAnswer(-2)" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 shadow-sm border-2 border-transparent hover:border-red-800">强烈反对</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="hidden max-w-md w-full text-center fade-in">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+        <h2 class="text-xl font-bold text-gray-700">正在构建您的意识形态画像...</h2>
+        <p class="text-gray-500 mt-2 text-sm">正在计算七维向量...</p>
+    </div>
+
+    <div id="result-screen" class="hidden max-w-2xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden fade-in mb-10">
+        <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-8 text-center text-white relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+            <p class="text-gray-400 uppercase tracking-widest text-xs font-semibold mb-2">最接近的意识形态</p>
+            <h1 id="result-title" class="text-4xl md:text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-white">
+                计算中...
+            </h1>
+            
+            <div class="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center max-w-lg mx-auto border border-white/20">
+                <div id="character-avatar" class="w-20 h-20 rounded-full flex-shrink-0 bg-gray-300 flex items-center justify-center overflow-hidden border-2 border-indigo-400">
+                    </div>
+                <div class="ml-4 text-left">
+                    <p id="character-name" class="font-bold text-lg text-white">历史人物</p>
+                    <p id="character-quote" class="text-sm text-gray-300 italic">"..."</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 md:p-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-6 border-l-4 border-indigo-600 pl-3">维度分析</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+                <div class="chart-container"><canvas id="chart-rev"></canvas><div class="chart-label">变革<br>态度</div></div>
+                <div class="chart-container"><canvas id="chart-sci"></canvas><div class="chart-label">理论<br>逻辑</div></div>
+                <div class="chart-container"><canvas id="chart-cen"></canvas><div class="chart-label">权力<br>分配</div></div>
+                <div class="chart-container"><canvas id="chart-int"></canvas><div class="chart-label">国际<br>立场</div></div>
+                <div class="chart-container"><canvas id="chart-par"></canvas><div class="chart-label">组织<br>形式</div></div>
+                <div class="chart-container"><canvas id="chart-pro"></canvas><div class="chart-label">发展<br>导向</div></div>
+                <div class="chart-container"><canvas id="chart-cul"></canvas><div class="chart-label">文化<br>价值</div></div>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-l-4 border-green-500 pl-3">深度解析</h3>
+                <div id="analysis-text" class="text-gray-700 leading-relaxed text-justify text-sm md:text-base space-y-4">
+                    </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <button onclick="location.reload()" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-8 rounded-full transition duration-200 shadow-lg">
+                    重新测试
                 </button>
-                <button class="btn" onclick="openZhihu()">打开知乎</button>
-                <button onclick="sayHello()">打开抖音</button>
-                <button onclick="sayHello()">用浏览器打开</button>
-                <button>打开知乎</button>
             </div>
-            <p id="greet-msg"></p>
-            <img src="./static/image/cursor.jpeg" alt="logo" />
-            <video
-                src="https://hk.gh-proxy.org/https://github.com/Sjj1024/PakePlus/blob/main/docs/static/videos/pakeplus.mp4"
-                autoplay
-                controls
-                style="width: 100%; height: 100%"
-            ></video>
-            <audio src="./static/music/yin.mp3" controls></audio>
-        </main>
-    </body>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 数据结构 ---
+        
+        // 维度定义 (Key: 维度ID)
+        // 计算方式：Percentage = (Score + MaxScore) / (2 * MaxScore)
+        // 0% 代表 Right/Conservative/Reform, 100% 代表 Left/Revolution/Radical (仅为内部逻辑方向，不代表绝对左右)
+        const dimensions = [
+            { id: 'rev', name: '变革态度', left: '革命', right: '改良' },
+            { id: 'sci', name: '理论逻辑', left: '科学', right: '空想' },
+            { id: 'cen', name: '权力分配', left: '集权', right: '分权' },
+            { id: 'int', name: '国际立场', left: '国际', right: '民族' },
+            { id: 'par', name: '组织形式', left: '党派', right: '工会' },
+            { id: 'pro', name: '发展导向', left: '生产', right: '生态' },
+            { id: 'cul', name: '文化价值', left: '保守', right: '进步' } 
+            // 注意：Q19-21保守为正分，所以逻辑上得分为正=保守。为了显示方便，后面会调整颜色映射
+        ];
+
+        // 题目列表
+        // effect: { 维度ID: 权重方向 }
+        // 权重方向: 1 (增加维度左侧/Positive得分), -1 (增加维度右侧/Negative得分)
+        const questions = [
+            // 维度 1: 变革 (革命 vs 改良)
+            { text: "如果现有的社会分配机制已经无法弥补贫富差距，那么推倒重来是唯一的出路。", effect: { rev: 1 } }, // Q1
+            { text: "社会的进步必须建立在维护秩序和稳定的基础上，任何激进的变动都会让普通人承受代价。", effect: { rev: -1 } }, // Q2
+            { text: "与其通过漫长的协商去修补旧系统，不如建立一个完全由先进理论指导的新体制。", effect: { rev: 1 } }, // Q3
+
+            // 维度 2: 理论 (科学 vs 空想)
+            { text: "社会的发展应该遵循客观的经济规律，即使这在短期内看起来不够“人性化”。", effect: { sci: 1 } }, // Q4
+            { text: "人类的道德感和对大同世界的追求，比冷冰冰的数据指标更能决定政策的好坏。", effect: { sci: -1 } }, // Q5
+            { text: "衡量一个制度是否优越，唯一标准是它能否大幅度提高生产力。", effect: { sci: 1 } }, // Q6
+
+            // 维度 3: 权力 (集权 vs 分权)
+            { text: "在面对大型基建或公共安全危机时，高度集中的指挥体系是最高效的选择。", effect: { cen: 1 } }, // Q7
+            { text: "基层社区和地方政府应该拥有更多自主决策权，因为他们更了解百姓的真实需求。", effect: { cen: -1 } }, // Q8
+            { text: "个人的自由表达权在任何时候都不应该为了“大局意识”而做出妥协。", effect: { cen: -1 } }, // Q9
+
+            // 维度 4: 国际 (国际 vs 民族)
+            // 注意: 原始题目Q10是"国家利益核心"，这是民族主义。如果定义International为正，则Q10为-1
+            { text: "国家利益是外交的核心原则，所谓的“全人类共同利益”在现实面前不值一提。", effect: { int: -1 } }, // Q10
+            { text: "我们应该首先关注本国劳动者的福利，而不是跨国企业的全球布局。", effect: { int: -1 } }, // Q11
+            { text: "真正的进步主义者应该支持打破国界阻碍，推动全球资源和财富的再分配。", effect: { int: 1 } }, // Q12
+
+            // 维度 5: 组织 (党派 vs 工会)
+            { text: "一个强有力的领导核心是社会实现长治久安和跨越式发展的必要前提。", effect: { par: 1 } }, // Q13
+            { text: "基层群众通过自发形成的劳动组织来维权，比依赖上级分配更可靠。", effect: { par: -1 } }, // Q14
+            { text: "社会管理应该由受过高度专业训练的精英团体来主导，而非由群众运动决定。", effect: { par: 1 } }, // Q15
+
+            // 维度 6: 生产 (生产 vs 生态)
+            { text: "在彻底解决贫困之前，环境保护不应成为制约工业化的理由。", effect: { pro: 1 } }, // Q16
+            { text: "绿水青山就是金山银山，如果牺牲环境来换取增长，这种增长是没有意义的。", effect: { pro: -1 } }, // Q17
+            { text: "为了应对气候危机，即使这意味着降低现有的物质生活水平，我们也应当接受。", effect: { pro: -1 } }, // Q18
+
+            // 维度 7: 文化 (保守 vs 进步)
+            // 设定: 保守(Conservative) = Positive Score (+), 进步(Progressive) = Negative Score (-)
+            { text: "传统家庭伦理和集体价值观是社会的基石，不应被过度的个人主义所瓦解。", effect: { cul: 1 } }, // Q19
+            { text: "为了保护本国传统文化，应该对外国文化的涌入和影响保持审慎。", effect: { cul: 1 } }, // Q20
+            { text: "所谓的“传统偏见”应该随着时代发展被彻底抛弃。", effect: { cul: -1 } }, // Q21
+
+            // 附加综合题
+            // Q22: 国企保障 -> 集权+, 生产+
+            { text: "国家持有关系国民生计的核心企业（国企）是保障社会公平的重要防线。", effect: { cen: 0.5, pro: 0.5 } }, 
+            // Q23: 效率优先 -> 科学+, 生产+
+            { text: "效率优先、兼顾公平在当前阶段依然是社会发展的正确路径。", effect: { sci: 0.5, pro: 0.5 } }, 
+            // Q24: 自主可控 -> 民族(International -)
+            { text: "在面临外部技术封锁时，牺牲部分经济效益去追求全产业链的自主可控是必须的。", effect: { int: -1 } }, 
+            // Q25: 集体培养 -> 保守+, 集权+
+            { text: "一个人的成功很大程度上取决于国家和集体的培养，而非仅仅是个人的努力。", effect: { cul: 0.5, cen: 0.5 } }
+        ];
+
+        // 意识形态预设
+        // 数值代表该维度的“左侧/Positive”倾向程度 (0-1)
+        // 例如 rev: 0.9 代表极度革命，rev: 0.1 代表极度改良
+        // cul: 0.9 代表极度保守, cul: 0.1 代表极度进步 (基于上方Q19-21的设定)
+        const ideologies = [
+            {
+                name: "正统马克思主义",
+                stats: { rev: 0.8, sci: 0.8, cen: 0.8, int: 0.7, par: 0.8, pro: 0.8, cul: 0.6 },
+                quote: "哲学家们只是用不同的方式解释世界，问题在于改变世界。",
+                person: "卡尔·马克思",
+                color: "#DC2626" // Red
+            },
+            {
+                name: "社会民主主义",
+                stats: { rev: 0.2, sci: 0.4, cen: 0.4, int: 0.6, par: 0.4, pro: 0.4, cul: 0.3 },
+                quote: "民主是手段，同时也是目的。它是争取社会主义的手段，又是社会主义实现的形式。",
+                person: "爱德华·伯恩施坦",
+                color: "#EC4899" // Pink
+            },
+            {
+                name: "自由民族主义",
+                stats: { rev: 0.3, sci: 0.7, cen: 0.3, int: 0.2, par: 0.3, pro: 0.7, cul: 0.6 },
+                quote: "少年强则国强，少年独立则国独立。",
+                person: "梁启超",
+                color: "#3B82F6" // Blue
+            },
+            {
+                name: "国家工团主义",
+                stats: { rev: 0.7, sci: 0.3, cen: 0.7, int: 0.2, par: 0.2, pro: 0.6, cul: 0.7 },
+                quote: "行动高于理论，神话胜过历史。",
+                person: "乔治·索雷尔",
+                color: "#92400E" // Brown
+            },
+            {
+                name: "生态社会主义",
+                stats: { rev: 0.6, sci: 0.3, cen: 0.3, int: 0.8, par: 0.3, pro: 0.1, cul: 0.2 },
+                quote: "要么是社会主义，要么是野蛮倒退。",
+                person: "罗莎·卢森堡",
+                color: "#10B981" // Green
+            },
+            {
+                name: "技术官僚主义",
+                stats: { rev: 0.3, sci: 0.9, cen: 0.8, int: 0.5, par: 0.7, pro: 0.9, cul: 0.5 },
+                quote: "一切为了工业，一切为了科学。",
+                person: "圣西门",
+                color: "#6366F1" // Indigo
+            },
+            {
+                name: "传统保守主义",
+                stats: { rev: 0.1, sci: 0.5, cen: 0.6, int: 0.2, par: 0.6, pro: 0.5, cul: 0.9 },
+                quote: "社会是死者、生者和未生者之间的契约。",
+                person: "埃德蒙·柏克",
+                color: "#1E3A8A" // Dark Blue
+            },
+            {
+                name: "自由意志主义",
+                stats: { rev: 0.4, sci: 0.7, cen: 0.1, int: 0.5, par: 0.1, pro: 0.7, cul: 0.2 },
+                quote: "在自私的驱使下，他被一只看不见的手引导着。",
+                person: "亚当·斯密",
+                color: "#F59E0B" // Yellow
+            },
+            {
+                name: "左翼民粹主义",
+                stats: { rev: 0.8, sci: 0.2, cen: 0.5, int: 0.6, par: 0.3, pro: 0.4, cul: 0.4 },
+                quote: "这里没有救世主，只有人民的力量。",
+                person: "切·格瓦拉",
+                color: "#7F1D1D" // Dark Red
+            },
+            {
+                name: "新发展主义",
+                stats: { rev: 0.4, sci: 0.8, cen: 0.8, int: 0.2, par: 0.7, pro: 0.9, cul: 0.6 },
+                quote: "国家必须在经济起飞阶段扮演守护者的角色。",
+                person: "弗里德里希·李斯特",
+                color: "#7C3AED" // Violet
+            }
+        ];
+
+        // --- 2. 状态管理 ---
+        let currentQIndex = 0;
+        let scores = { rev: 0, sci: 0, cen: 0, int: 0, par: 0, pro: 0, cul: 0 };
+        let maxScores = { rev: 0, sci: 0, cen: 0, int: 0, par: 0, pro: 0, cul: 0 };
+
+        // 预计算最高分（用于归一化）
+        questions.forEach(q => {
+            for (let dim in q.effect) {
+                maxScores[dim] += Math.abs(q.effect[dim]) * 2; // 2是单题最大绝对值
+            }
+        });
+
+        // --- 3. 交互逻辑 ---
+
+        function startQuiz() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            document.getElementById('q-number').innerText = currentQIndex + 1;
+            document.getElementById('q-text').innerText = questions[currentQIndex].text;
+            
+            // 更新进度条
+            const progress = (currentQIndex / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+
+        function handleAnswer(weight) {
+            const q = questions[currentQIndex];
+            
+            // 计算分数
+            for (let dim in q.effect) {
+                scores[dim] += weight * q.effect[dim];
+            }
+
+            currentQIndex++;
+
+            if (currentQIndex < questions.length) {
+                renderQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('loading-screen').classList.remove('hidden');
+            
+            setTimeout(() => {
+                calculateAndShowResults();
+            }, 1200); // 假装在计算
+        }
+
+        // --- 4. 结果计算核心 ---
+
+        function calculateAndShowResults() {
+            // 1. 归一化分数 (0 - 1)
+            let finalResults = {};
+            for (let dim in scores) {
+                // (Score + Max) / (2 * Max) -> maps -Max..Max to 0..1
+                finalResults[dim] = (scores[dim] + maxScores[dim]) / (2 * maxScores[dim]);
+            }
+
+            // 2. 寻找最近的意识形态 (欧几里得距离)
+            let bestMatch = null;
+            let minDistance = Infinity;
+
+            ideologies.forEach(ideo => {
+                let dist = 0;
+                for (let dim in ideo.stats) {
+                    dist += Math.pow(finalResults[dim] - ideo.stats[dim], 2);
+                }
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    bestMatch = ideo;
+                }
+            });
+
+            // 3. 渲染 DOM
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            document.getElementById('result-title').innerText = bestMatch.name;
+            document.getElementById('character-name').innerText = bestMatch.person;
+            document.getElementById('character-quote').innerText = `"${bestMatch.quote}"`;
+            
+            // 生成简单的 SVG 头像 (基于名字首字母或抽象图形，区分颜色)
+            const avatarSvg = `
+                <svg viewBox="0 0 100 100" class="w-full h-full text-white fill-current">
+                    <rect width="100" height="100" fill="${bestMatch.color}" />
+                    <text x="50" y="60" font-size="50" text-anchor="middle" font-family="Arial" font-weight="bold" fill="white">
+                        ${bestMatch.person.charAt(0)}
+                    </text>
+                </svg>
+            `;
+            document.getElementById('character-avatar').innerHTML = avatarSvg;
+
+            // 4. 生成深度分析文本
+            const analysis = generateAnalysisText(finalResults, bestMatch);
+            document.getElementById('analysis-text').innerHTML = analysis;
+
+            // 5. 渲染图表
+            renderCharts(finalResults);
+        }
+
+        function generateAnalysisText(res, match) {
+            let text = `<p>经过全方位的判定，您的意识形态最接近<strong>【${match.name}】</strong>。这是基于您在七个维度的综合倾向值得出的结论。</p>`;
+
+            // 维度分析逻辑
+            // 革命 vs 改良
+            text += "<p>";
+            if (res.rev > 0.6) text += "在<b>社会变革</b>方面，您表现出明显的革命倾向，认为现有体制的修补不足以解决根本矛盾。";
+            else if (res.rev < 0.4) text += "在<b>社会变革</b>方面，您更偏向温和改良，认为秩序的崩溃往往比现状更糟糕。";
+            else text += "在<b>社会变革</b>方面，您持务实态度，既不盲目维护现状，也警惕激进的破坏。";
+            
+            // 生产 vs 生态
+            if (res.pro > 0.6) text += " 关于<b>发展导向</b>，您坚定地站在生产力优先的一方，认为物质基础决定上层建筑，环保不应成为发展的掣肘。";
+            else if (res.pro < 0.4) text += " 关于<b>发展导向</b>，您具有强烈的生态主义意识，认为不可持续的增长是对未来的透支。";
+            
+            // 国际 vs 民族
+            if (res.int < 0.4) text += " 在<b>国际立场</b>上，您表现出鲜明的民族主义色彩，强调国家主权和本国公民利益的优先性。";
+            else if (res.int > 0.6) text += " 在<b>国际立场</b>上，您拥有国际主义视野，倾向于全球合作和跨越国界的正义。";
+
+            // 理论基础
+            if (res.sci > 0.6) text += " 您的思维方式高度<b>理性与科学化</b>，倾向于相信客观规律而非道德感召。";
+            
+            // 文化
+            if (res.cul > 0.6) text += " 在<b>文化价值观</b>上，您非常珍视传统与集体记忆，认为这是社会凝聚力的来源。";
+            else if (res.cul < 0.4) text += " 在<b>文化价值观</b>上，您是激进的进步派，主张打破旧有的传统束缚。";
+
+            text += "</p><p>总而言之，您的政治光谱反映了您对如何在<b>公平与效率</b>、<b>个人与集体</b>之间寻找平衡的独特见解。这种倾向可能源于您对社会现实的观察以及对历史规律的理解。</p>";
+            
+            return text;
+        }
+
+        // --- 5. 图表渲染 (Chart.js) ---
+        function renderCharts(res) {
+            const commonConfig = {
+                type: 'doughnut',
+                options: {
+                    cutout: '65%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    animation: { animateScale: true, animateRotate: true }
+                }
+            };
+
+            const chartMap = [
+                { id: 'chart-rev', val: res.rev, label: '变革', color: '#EF4444' }, // Red
+                { id: 'chart-sci', val: res.sci, label: '科学', color: '#8B5CF6' }, // Purple
+                { id: 'chart-cen', val: res.cen, label: '集权', color: '#DC2626' }, // Dark Red
+                { id: 'chart-int', val: res.int, label: '国际', color: '#3B82F6' }, // Blue
+                { id: 'chart-par', val: res.par, label: '党派', color: '#B91C1C' }, // Red
+                { id: 'chart-pro', val: res.pro, label: '生产', color: '#F59E0B' }, // Amber
+                { id: 'chart-cul', val: res.cul, label: '保守', color: '#1E3A8A' }  // Dark Blue
+            ];
+
+            chartMap.forEach(c => {
+                const ctx = document.getElementById(c.id).getContext('2d');
+                new Chart(ctx, {
+                    ...commonConfig,
+                    data: {
+                        labels: ['Yes', 'No'],
+                        datasets: [{
+                            data: [c.val * 100, (1 - c.val) * 100],
+                            backgroundColor: [c.color, '#E5E7EB'], // Color vs Gray
+                            borderWidth: 0
+                        }]
+                    }
+                });
+            });
+        }
+
+    </script>
+</body>
 </html>
